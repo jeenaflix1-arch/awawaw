@@ -444,11 +444,42 @@ const PERM_MODS = ['dashboard','videos','photos','sites','inspection','daily','p
 /* ---------- Storage ---------- */
 const TOKEN_KEY = 'scope_solar_token';
 let S = JSON.parse(JSON.stringify(DEFAULT_STATE)); S.users=[]; S.team=[]; S.sites=[]; S.videos=[]; S.photos=[];
-async function api(payload){
-  const r = await fetch('/api/public/scope',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true});
-  const j = await r.json().catch(()=>({}));
-  if(!r.ok) throw Object.assign(new Error(j.error||'Request failed'),{status:r.status});
-  return j;
+/* Static-hosting backend: everything is stored in this browser's localStorage */
+const DB_KEY='scope_solar_db_v1', SES_KEY='scope_solar_sessions_v1';
+function _loadDB(){
+  try{ const d=JSON.parse(localStorage.getItem(DB_KEY)); if(d&&Array.isArray(d.users)&&d.users.length) return d; }catch(e){}
+  let d=JSON.parse(JSON.stringify(DEFAULT_STATE)); delete d.session;
+  try{ const r=seed(d); if(r&&r.users) d=r; }catch(e){}
+  _saveDB(d); return d;
+}
+function _saveDB(d){ localStorage.setItem(DB_KEY,JSON.stringify(d)); }
+function _ses(){ try{return JSON.parse(localStorage.getItem(SES_KEY))||{};}catch(e){return {};} }
+async function api(p){
+  const err=(m,s)=>Object.assign(new Error(m),{status:s});
+  const db=_loadDB();
+  if(p.action==='login'){
+    const k=String(p.username||p.email||'').trim().toLowerCase();
+    const u=db.users.find(u=>(String(u.username||'').toLowerCase()===k)||(String(u.email||'').toLowerCase()===k));
+    if(!u||u.pass!==p.pass||u.active===false) throw err('Invalid username or password',401);
+    const t=Math.random().toString(36).slice(2)+Date.now().toString(36);
+    const m=_ses(); m[t]=u.id; localStorage.setItem(SES_KEY,JSON.stringify(m));
+    return {token:t,uid:u.id,state:db};
+  }
+  const uid=_ses()[p.token];
+  if(p.action==='logout'){ const m=_ses(); delete m[p.token]; localStorage.setItem(SES_KEY,JSON.stringify(m)); return {}; }
+  if(uid===undefined) throw err('Session expired',401);
+  if(p.action==='load') return {state:db,uid};
+  if(p.action==='save'){
+    const ns=p.state||{}; delete ns.session;
+    (ns.users||[]).forEach(u=>{ if(u.newPass){ u.pass=u.newPass; } delete u.newPass; });
+    _saveDB(ns); return {};
+  }
+  if(p.action==='changePw'){
+    const u=db.users.find(x=>x.id===uid);
+    if(!u||u.pass!==p.current) throw err('Current password is wrong',400);
+    u.pass=p.next; _saveDB(db); return {};
+  }
+  throw err('Unknown action',400);
 }
 let _saveTimer=null, _saving=Promise.resolve();
 function save(){
