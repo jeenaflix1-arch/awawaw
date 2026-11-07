@@ -200,7 +200,8 @@ tr:hover td{background:#fafbfe}
 
 /* Responsive */
 @media (max-width:900px){
-  .app.on{grid-template-columns:1fr}
+  .app.on{grid-template-columns:minmax(0,1fr)}
+  .main{grid-column:1}
   .sidebar{position:fixed;left:0;top:0;z-index:50;width:260px;transform:translateX(-100%)}
   .sidebar.open{transform:none;box-shadow:var(--shadow-lg)}
   .hamburger{display:grid}
@@ -1682,6 +1683,7 @@ setInterval(()=>{if(!S.session||document.hidden)return;refreshInspectionBell();i
   .ir-head h2{font-size:21px}.ir-head svg{width:38px;height:38px}
   .ir-add{flex:1.5;white-space:nowrap;font-size:12.5px;padding:12px 6px}.ir-proj{font-size:12.5px;padding:0 8px}.ir-proj select{font-size:12.5px}
   .ir-stat{flex-direction:column;gap:4px;padding:12px 6px}.ir-stat svg{width:30px;height:30px}.ir-stat b{font-size:24px}.ir-stat span{font-size:11.5px;margin-top:0}
+  .ir-stat{justify-content:flex-start;padding-top:14px;min-height:118px}.ir-stat>div{display:flex;flex-direction:column;align-items:center}.ir-stat span{min-height:28px}
   .ir-tab{font-size:12px;padding:10px 4px;gap:4px}.ir-tab i{width:17px;height:17px;font-size:10px}
   .ir-card{gap:9px;padding:10px}
   .ir-thumb{width:62px;height:52px}
